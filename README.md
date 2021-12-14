@@ -1,11 +1,4 @@
-## Keycloak operator based on Quarkus
-
-The idea is that you create a `JokeRequest` custom resource that you apply to your cluster. The
-operator will do its best to comply and create a `Joke` custom resource on your behalf if everything
-went well. Jokes are retrieved from the https://v2.jokeapi.dev/joke API endpoint. The request can be
-customized to your taste by specifying which category of jokes you'd like or the amount of
-explicitness / topics you can tolerate. You can also request a "safe" joke which should be
-appropriate in most settings.
+## Keycloak operator POC based on Quarkus
 
 ### Quick start on Minikube
 
