@@ -1,0 +1,6 @@
+apiVersion: "samples.javaoperatorsdk.io/v1alpha1"
+kind: JokeRequest
+metadata:
+  name: example-kc
+spec:
+  instances: 1

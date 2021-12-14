@@ -1,0 +1,3 @@
+resources:
+  - keycloaks.keycloak.org-v1.yml
+  - kubernetes.yml
