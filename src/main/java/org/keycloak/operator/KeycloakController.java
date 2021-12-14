@@ -16,7 +16,6 @@ package org.keycloak.operator;
 
 import javax.inject.Inject;
 
-import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.Context;
 import io.javaoperatorsdk.operator.api.Controller;
@@ -26,10 +25,15 @@ import io.javaoperatorsdk.operator.api.UpdateControl;
 import org.keycloak.operator.crds.Keycloak;
 import org.keycloak.operator.crds.KeycloakStatus;
 
+import java.util.logging.Logger;
+
 import static org.keycloak.operator.crds.KeycloakStatus.State.*;
 
-@Controller(namespaces = Controller.WATCH_CURRENT_NAMESPACE)
+@Controller(namespaces = Controller.WATCH_CURRENT_NAMESPACE, finalizerName = Controller.NO_FINALIZER)
 public class KeycloakController implements ResourceController<Keycloak> {
+
+    Logger logger = Logger.getLogger(this.getClass().getSimpleName());
+
     @Inject
     KubernetesClient client;
 
@@ -63,7 +67,7 @@ public class KeycloakController implements ResourceController<Keycloak> {
             }
         } catch (Exception e) {
             status = new KeycloakStatus();
-            status.setMessage("Error performing operations " + e.getMessage());
+            status.setMessage("Error performing operations:\n" + e.getMessage());
             status.setState(ERROR);
             status.setError(true);
 

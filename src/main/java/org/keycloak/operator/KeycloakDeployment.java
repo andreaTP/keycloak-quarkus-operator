@@ -28,11 +28,18 @@ public class KeycloakDeployment {
     }
 
     public void createKeycloakDeployment(Keycloak keycloak) {
-        new DeploymentBuilder()
+        client
+            .apps()
+            .deployments()
+            .inNamespace(keycloak.getMetadata().getNamespace())
+            .create(newKeycloakDeployment(keycloak));
+    }
+
+    public Deployment newKeycloakDeployment(Keycloak keycloak) {
+        return new DeploymentBuilder()
                 .withNewMetadata()
                     .withName(Constants.NAME)
                     .withNamespace(keycloak.getMetadata().getNamespace())
-                    .addToLabels(Constants.DEFAULT_LABELS)
                     .addToLabels(Constants.MANAGED_BY_LABEL, Constants.MANAGED_BY_VALUE)
                     .addNewOwnerReference()
                         .withApiVersion(Constants.CRDS_VERSION)
@@ -43,12 +50,11 @@ public class KeycloakDeployment {
                 .endMetadata()
 
                 .withNewSpec()
-                .withReplicas(keycloak.getSpec().getInstances())
-                .withNewSelector()
-                    .addToMatchLabels(Constants.DEFAULT_LABELS)
-                .endSelector()
 
                 .withNewTemplate()
+                .withNewMetadata()
+                .addToLabels(Constants.DEFAULT_LABELS)
+                .endMetadata()
                 .withNewSpec()
 
                 .addNewInitContainer()
@@ -61,13 +67,17 @@ public class KeycloakDeployment {
                 .withImage(Constants.DEFAULT_KEYCLOAK_IMAGE)
                 .addNewPort()
                 .withContainerPort(8443)
-                .withProtocol("HTTP")
+                .withProtocol("TCP")
                 .endPort()
                 .endContainer()
-
                 .endSpec()
 
                 .endTemplate()
+                .withReplicas(keycloak.getSpec().getInstances())
+                .withNewSelector()
+                .addToMatchLabels(Constants.DEFAULT_LABELS)
+                .endSelector()
+
                 .endSpec()
                 .build();
     }
@@ -78,6 +88,13 @@ public class KeycloakDeployment {
                 current.getStatus() != null &&
                 current.getStatus().getReadyReplicas() != null &&
                 current.getStatus().getReadyReplicas() == desired.getInstances());
+
+        if (prev == null) {
+            var newStatus = new KeycloakStatus();
+            newStatus.setState(READY);
+            newStatus.setMessage("Keycloak deployment started");
+            return newStatus;
+        }
 
         switch (prev.getState()) {
             case READY:

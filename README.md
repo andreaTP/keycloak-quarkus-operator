@@ -9,26 +9,26 @@ appropriate in most settings.
 
 ### Quick start on Minikube
 
+Enable the Minikube Docker daemon:
+```bash
+eval $(minikube -p minikube docker-env)
+```
+
 Compile the project generating the Docker image with JIB:
 
 ```bash
-mvn clean package -Dquarkus.container-image.build=true
+mvn clean package -Dquarkus.container-image.build=true -Dquarkus.kubernetes.deployment-target=minikube
 ```
 
-Load the Image in minikube:
+Install the CRD definition:
 
 ```bash
-minikube image load keycloak/keycloak-quarkus-operator:0.0.1-SNAPSHOT
-```
-
-Copy the produced Kubernetes resources in the `kustomize/base` directory:
-
-```bash
-cp -f target/kubernetes/* ./kustomize/base
+kubectl apply -f target/kubernetes/keycloaks.keycloak.org-v1.yml
 ```
 
 And finally install the operator:
 
 ```bash
-kubectl apply -k ./kustomize/overlays/dev
+cp -f target/kubernetes/* kustomize/base
+kubectl apply -k kustomize/base
 ```
