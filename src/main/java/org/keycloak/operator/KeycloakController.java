@@ -16,21 +16,16 @@ package org.keycloak.operator;
 
 import javax.inject.Inject;
 
+import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.javaoperatorsdk.operator.api.Context;
-import io.javaoperatorsdk.operator.api.Controller;
-import io.javaoperatorsdk.operator.api.DeleteControl;
-import io.javaoperatorsdk.operator.api.ResourceController;
-import io.javaoperatorsdk.operator.api.UpdateControl;
+import io.javaoperatorsdk.operator.api.reconciler.*;
+import io.javaoperatorsdk.operator.api.reconciler.Constants;
+import org.jboss.logging.Logger;
 import org.keycloak.operator.crds.Keycloak;
 import org.keycloak.operator.crds.KeycloakStatus;
 
-import java.util.logging.Logger;
-
-import static org.keycloak.operator.crds.KeycloakStatus.State.*;
-
-@Controller(namespaces = Controller.WATCH_CURRENT_NAMESPACE, finalizerName = Controller.NO_FINALIZER)
-public class KeycloakController implements ResourceController<Keycloak> {
+@ControllerConfiguration(namespaces = Constants.WATCH_CURRENT_NAMESPACE, finalizerName = Constants.NO_FINALIZER)
+public class KeycloakController implements Reconciler<Keycloak> {
 
     Logger logger = Logger.getLogger(this.getClass().getSimpleName());
 
@@ -38,12 +33,7 @@ public class KeycloakController implements ResourceController<Keycloak> {
     KubernetesClient client;
 
     @Override
-    public DeleteControl deleteResource(Keycloak joke, Context<Keycloak> context) {
-        return DeleteControl.DEFAULT_DELETE;
-    }
-
-    @Override
-    public UpdateControl<Keycloak> createOrUpdateResource(Keycloak kc, Context<Keycloak> context) {
+    public UpdateControl<Keycloak> reconcile(Keycloak kc, Context context) {
         final var spec = kc.getSpec();
 
         KeycloakStatus status = kc.getStatus();
@@ -61,18 +51,24 @@ public class KeycloakController implements ResourceController<Keycloak> {
 
             if (nextStatus != null) {
                 kc.setStatus(nextStatus);
-                return UpdateControl.updateStatusSubResource(kc);
+                return UpdateControl.updateStatus(kc);
             } else {
                 return UpdateControl.noUpdate();
             }
         } catch (Exception e) {
+            logger.error("Error reconciling", e);
             status = new KeycloakStatus();
             status.setMessage("Error performing operations:\n" + e.getMessage());
-            status.setState(ERROR);
+            status.setState(KeycloakStatus.State.ERROR);
             status.setError(true);
 
             kc.setStatus(status);
-            return UpdateControl.updateStatusSubResource(kc);
+            return UpdateControl.updateStatus(kc);
         }
+    }
+
+    @Override
+    public DeleteControl cleanup(Keycloak resource, Context context) {
+        return Reconciler.super.cleanup(resource, context);
     }
 }

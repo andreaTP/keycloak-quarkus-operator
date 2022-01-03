@@ -19,12 +19,19 @@ public class KeycloakDeployment {
 
     public Deployment getKeycloakDeployment(Keycloak keycloak) {
         // TODO this should be done through an informer to leverage caches
+        // WORKAROUND for: https://github.com/java-operator-sdk/java-operator-sdk/issues/781
         return client
                 .apps()
                 .deployments()
                 .inNamespace(keycloak.getMetadata().getNamespace())
-                .withName(Constants.NAME)
-                .get();
+                .list()
+                .getItems()
+                .stream()
+                .filter((d) -> d.getMetadata().getName().equals(org.keycloak.operator.Constants.NAME))
+                .findFirst()
+                .orElse(null);
+//                .withName(Constants.NAME)
+//                .get();
     }
 
     public void createKeycloakDeployment(Keycloak keycloak) {
@@ -86,8 +93,7 @@ public class KeycloakDeployment {
 
         var isReady = (current != null &&
                 current.getStatus() != null &&
-                current.getStatus().getReadyReplicas() != null &&
-                current.getStatus().getReadyReplicas() == desired.getInstances());
+                current.getStatus().getReadyReplicas() != null);
 
         if (prev == null) {
             var newStatus = new KeycloakStatus();
